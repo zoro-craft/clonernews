@@ -74,7 +74,7 @@ async function loadMorePosts() {
 }
 
 // Adds one post card to the page.
-export function addPostToPage(post, addToTop = false) {
+export function addPostToPage(post) {
   if (!post || !post.title || document.querySelector(`[data-id="${post.id}"]`)) {
     return;
   }
@@ -85,15 +85,7 @@ export function addPostToPage(post, addToTop = false) {
     return;
   }
 
-  const list = document.getElementById("post-list");
-
-  if (addToTop) {
-    list.prepend(card);
-  } else {
-    list.appendChild(card);
-  }
-
-  sortPostCards();
+  insertCardByTime(card);
 }
 
 // Builds the correct card depending on the item type.
@@ -212,11 +204,19 @@ function setLoadButton(disabled, text) {
   button.textContent = text;
 }
 
-// Keeps the cards on the page ordered from newest to oldest.
-function sortPostCards() {
+// Adds a card in the right place so newest posts stay first.
+function insertCardByTime(card) {
   const list = document.getElementById("post-list");
   const cards = Array.from(list.children);
+  const cardTime = Number(card.dataset.time);
 
-  cards.sort((a, b) => Number(b.dataset.time) - Number(a.dataset.time));
-  cards.forEach((card) => list.appendChild(card));
+  const olderCard = cards.find((oldCard) => {
+    return Number(oldCard.dataset.time) < cardTime;
+  });
+
+  if (olderCard) {
+    list.insertBefore(card, olderCard);
+  } else {
+    list.appendChild(card);
+  }
 }

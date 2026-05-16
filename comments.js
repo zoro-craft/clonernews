@@ -5,13 +5,11 @@ let seenLiveIds = new Set();
 let liveIdsWaiting = [];
 
 // Starts the comment panel and the live update checker.
-export function initCommentsAndLive() {
+export function initComments() {
   document.getElementById("close-comments-btn").addEventListener("click", closeComments);
   document.getElementById("show-live-btn").addEventListener("click", showLivePosts);
   document.getElementById("hide-live-btn").addEventListener("click", hideLiveBanner);
 
-  checkLiveUpdates();
-  setInterval(checkLiveUpdates, 5000);
 }
 
 // Opens the side panel and loads the comments for one post.
@@ -74,7 +72,7 @@ function makeComment(comment) {
 }
 
 // Checks Hacker News for live updates every few seconds.
-async function checkLiveUpdates() {
+export async function checkLiveUpdates() {
   const updates = await fetchLiveUpdates();
 
   if (!updates.items) {
@@ -99,7 +97,7 @@ async function showLivePosts() {
 
   const items = await fetchItems(liveIdsWaiting);
   items.sort((a, b) => b.time - a.time);
-  items.reverse().forEach((item) => addPostToPage(item, true));
+  items.forEach((item) => addPostToPage(item));
 
   liveIdsWaiting = [];
 }
