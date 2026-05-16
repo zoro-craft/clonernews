@@ -1,100 +1,110 @@
-// ============================================================
-// comments.js  (Person 3)
-// ============================================================
-
 import { fetchItem, fetchItems, fetchLiveUpdates, timeAgo } from "./api.js";
-import { buildCard } from "./posts.js";
+import { addPostToPage } from "./posts.js";
 
-let currentPostId = null;
 let seenLiveIds = new Set();
-let newLiveItemIds = [];
+let liveIdsWaiting = [];
 
+// Starts the comment panel and the live update checker.
+export function initCommentsAndLive() {
+  document.getElementById("close-comments-btn").addEventListener("click", closeComments);
+  document.getElementById("show-live-btn").addEventListener("click", showLivePosts);
+  document.getElementById("hide-live-btn").addEventListener("click", hideLiveBanner);
+
+  checkLiveUpdates();
+  setInterval(checkLiveUpdates, 5000);
+}
+
+// Opens the side panel and loads the comments for one post.
 export async function openComments(postId) {
-  currentPostId = postId;
-
   const post = await fetchItem(postId);
-  if (!post) return;
 
-  const panel = document.getElementById("comment-panel");
-  const title = document.getElementById("comment-panel-title");
-  const list  = document.getElementById("comment-list");
+  if (!post) {
+    return;
+  }
 
-  title.textContent = post.title || "Comments";
-  list.innerHTML = "";
-  panel.classList.add("open");
+  document.getElementById("comment-title").textContent = post.title || "Comments";
+  document.getElementById("comment-list").innerHTML = "Loading comments...";
+  document.getElementById("comment-panel").classList.add("open");
 
-  if (!post.kids || post.kids.length === 0) return;
+  if (!post.kids || post.kids.length === 0) {
+    document.getElementById("comment-list").innerHTML = "No comments yet.";
+    return;
+  }
 
   const comments = await fetchItems(post.kids);
   comments.sort((a, b) => b.time - a.time);
-  comments.forEach((comment) => {
-    if (!comment.deleted && !comment.dead) list.appendChild(buildCommentElement(comment));
-  });
+  showComments(comments);
 }
 
+// Closes the comment panel.
 function closeComments() {
   document.getElementById("comment-panel").classList.remove("open");
-  currentPostId = null;
 }
 
-function buildCommentElement(comment) {
-  const el = document.createElement("div");
-  el.className = "comment";
-  el.dataset.id = comment.id;
-  el.innerHTML = `
-    <div class="comment-header">
-      <strong class="comment-by">${comment.by || "[deleted]"}</strong>
+// Shows all comments in the panel.
+function showComments(comments) {
+  const list = document.getElementById("comment-list");
+  list.innerHTML = "";
+
+  comments.forEach((comment) => {
+    if (!comment.deleted && !comment.dead) {
+      list.appendChild(makeComment(comment));
+    }
+  });
+
+  if (list.children.length === 0) {
+    list.innerHTML = "No visible comments.";
+  }
+}
+
+// Builds one comment element.
+function makeComment(comment) {
+  const element = document.createElement("article");
+  element.className = "comment";
+
+  element.innerHTML = `
+    <div class="comment-info">
+      <strong>${comment.by || "unknown"}</strong>
       <span>${timeAgo(comment.time)}</span>
     </div>
     <div class="comment-text">${comment.text || ""}</div>
   `;
-  return el;
+
+  return element;
 }
 
-async function checkForLiveUpdates() {
+// Checks Hacker News for live updates every few seconds.
+async function checkLiveUpdates() {
   const updates = await fetchLiveUpdates();
-  if (!updates?.items) return;
 
-  const freshIds = updates.items.filter((id) => !seenLiveIds.has(id));
+  if (!updates.items) {
+    return;
+  }
+
+  const newIds = updates.items.filter((id) => !seenLiveIds.has(id));
   updates.items.forEach((id) => seenLiveIds.add(id));
-  if (freshIds.length === 0) return;
 
-  const freshItems = await fetchItems(freshIds);
-  const freshPosts = freshItems.filter((item) => item?.title);
-  if (freshPosts.length === 0) return;
+  if (newIds.length === 0) {
+    return;
+  }
 
-  newLiveItemIds = freshIds;
-  const banner = document.getElementById("live-banner");
-  document.getElementById("live-banner-msg").textContent = `${freshPosts.length} new item${freshPosts.length === 1 ? "" : "s"} available`;
-  banner.style.display = "flex";
+  liveIdsWaiting = newIds;
+  document.getElementById("live-message").textContent = `${newIds.length} live update(s) found`;
+  document.getElementById("live-banner").style.display = "flex";
 }
 
-async function mergeLiveItems() {
-  document.getElementById("live-banner").style.display = "none";
-  if (newLiveItemIds.length === 0) return;
+// Adds the newest live posts to the top of the feed.
+async function showLivePosts() {
+  hideLiveBanner();
 
-  const items = await fetchItems(newLiveItemIds);
-  newLiveItemIds = [];
+  const items = await fetchItems(liveIdsWaiting);
   items.sort((a, b) => b.time - a.time);
+  items.reverse().forEach((item) => addPostToPage(item, true));
 
-  const list = document.getElementById("post-list");
-  items.forEach((item) => {
-    if (!item?.title || list.querySelector(`[data-id="${item.id}"]`)) return;
-    const card = buildCard(item);
-    if (card) {
-      card.querySelector(".comments-btn")?.addEventListener("click", () => openComments(item.id));
-      list.insertBefore(card, list.firstChild);
-    }
-  });
+  liveIdsWaiting = [];
 }
 
-export function initCommentsAndLive() {
-  document.getElementById("close-comments-btn").addEventListener("click", closeComments);
-  document.getElementById("live-banner-action").addEventListener("click", mergeLiveItems);
-  document.getElementById("live-banner-dismiss").addEventListener("click", () => {
-    document.getElementById("live-banner").style.display = "none";
-  });
-
-  checkForLiveUpdates();
-  setInterval(checkForLiveUpdates, 5000);
+// Hides the live update banner.
+function hideLiveBanner() {
+  document.getElementById("live-banner").style.display = "none";
 }

@@ -1,61 +1,87 @@
-// ============================================================
-// api.js  (Person 1)
-// ============================================================
-
 const BASE_URL = "https://hacker-news.firebaseio.com/v0";
 const itemCache = {};
 
+// Gets one item from Hacker News. It uses a cache so we do not fetch the same item twice.
 export async function fetchItem(id) {
-  if (itemCache[id]) return itemCache[id];
+  if (itemCache[id]) {
+    return itemCache[id];
+  }
+
   try {
-    const res = await fetch(`${BASE_URL}/item/${id}.json`);
-    const item = await res.json();
-    if (item) itemCache[id] = item;
+    const response = await fetch(`${BASE_URL}/item/${id}.json`);
+    const item = await response.json();
+
+    if (item) {
+      itemCache[id] = item;
+    }
+
     return item;
-  } catch { return null; }
+  } catch (error) {
+    console.log("Could not fetch item", id, error);
+    return null;
+  }
 }
 
+// Gets many items by using fetchItem for each id.
 export async function fetchItems(ids) {
-  const results = await Promise.all(ids.map(fetchItem));
-  return results.filter(Boolean);
+  const items = await Promise.all(ids.map((id) => fetchItem(id)));
+  return items.filter((item) => item !== null);
 }
 
-export async function fetchTopStoryIds() {
-  try { return await (await fetch(`${BASE_URL}/topstories.json`)).json(); }
-  catch { return []; }
+// Gets the ids for the selected feed.
+export async function fetchFeedIds(feedName) {
+  let endpoint = "topstories";
+
+  if (feedName === "new") {
+    endpoint = "newstories";
+  }
+
+  if (feedName === "jobs") {
+    endpoint = "jobstories";
+  }
+
+  try {
+    const response = await fetch(`${BASE_URL}/${endpoint}.json`);
+    return await response.json();
+  } catch (error) {
+    console.log("Could not fetch feed", error);
+    return [];
+  }
 }
 
-export async function fetchNewStoryIds() {
-  try { return await (await fetch(`${BASE_URL}/newstories.json`)).json(); }
-  catch { return []; }
-}
-
-export async function fetchJobIds() {
-  try { return await (await fetch(`${BASE_URL}/jobstories.json`)).json(); }
-  catch { return []; }
-}
-
+// Gets the live update ids from Hacker News.
 export async function fetchLiveUpdates() {
-  try { return await (await fetch(`${BASE_URL}/updates.json`)).json(); }
-  catch { return { items: [] }; }
+  try {
+    const response = await fetch(`${BASE_URL}/updates.json`);
+    return await response.json();
+  } catch (error) {
+    console.log("Could not fetch live updates", error);
+    return { items: [] };
+  }
 }
 
-export function getPage(allIds, page, pageSize = 10) {
-  return allIds.slice(page * pageSize, (page + 1) * pageSize);
+// Turns a big list of ids into one smaller page.
+export function getPage(ids, pageNumber, pageSize) {
+  const start = pageNumber * pageSize;
+  const end = start + pageSize;
+  return ids.slice(start, end);
 }
 
-export function timeAgo(unixTimestamp) {
-  const s = Math.floor(Date.now() / 1000) - unixTimestamp;
-  if (s < 60) return `${s}s ago`;
-  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
-  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
-  return `${Math.floor(s / 86400)}d ago`;
-}
+// Shows a simple "time ago" text for a Hacker News unix time.
+export function timeAgo(time) {
+  const seconds = Math.floor(Date.now() / 1000) - time;
 
-export function throttle(fn, delay) {
-  let lastCall = 0;
-  return function (...args) {
-    const now = Date.now();
-    if (now - lastCall >= delay) { lastCall = now; fn(...args); }
-  };
+  if (seconds < 60) {
+    return `${seconds}s ago`;
+  }
+
+  if (seconds < 3600) {
+    return `${Math.floor(seconds / 60)}m ago`;
+  }
+
+  if (seconds < 86400) {
+    return `${Math.floor(seconds / 3600)}h ago`;
+  }
+
+  return `${Math.floor(seconds / 86400)}d ago`;
 }

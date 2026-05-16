@@ -1,13 +1,6 @@
-// ============================================================
-// main.js  — Entry point
-// ============================================================
-
-import { initPostLoading } from "./posts.js";
 import { initCommentsAndLive, openComments } from "./comments.js";
+import { initPosts } from "./posts.js";
 
-// posts.js needs to call openComments (defined in comments.js)
-// We expose it on window so the button listeners in posts.js can reach it
-window.openComments = openComments;
-
-initPostLoading();
+// Starts the whole page after the modules are loaded.
+initPosts(openComments);
 initCommentsAndLive();

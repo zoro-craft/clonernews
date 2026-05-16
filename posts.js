@@ -1,153 +1,222 @@
-// ============================================================
-// posts.js  (Person 2)
-// ============================================================
+import { fetchFeedIds, fetchItems, getPage, timeAgo } from "./api.js";
 
-import { fetchItems, fetchTopStoryIds, fetchNewStoryIds, fetchJobIds, getPage, timeAgo, throttle } from "./api.js";
+const PAGE_SIZE = 10;
 
-const feedState = { currentFeed: "top", allIds: [], currentPage: 0, isLoading: false };
+let currentFeed = "top";
+let allPostIds = [];
+let currentPage = 0;
+let isLoading = false;
+let openCommentsFunction = null;
 
-function buildStoryCard(item) {
-  const card = document.createElement("div");
-  card.className = "post-card";
-  card.dataset.id = item.id;
-  card.innerHTML = `
-    <div class="post-meta">
-      <span class="post-badge badge-story">Story</span>
-      <span>▲ ${item.score || 0}</span>
-      <span>${timeAgo(item.time)}</span>
-    </div>
-    <h2 class="post-title">
-      ${item.url ? `<a href="${item.url}" target="_blank" rel="noopener">${item.title}</a>` : item.title}
-    </h2>
-    <div class="post-footer">
-      <span>by <strong>${item.by}</strong></span>
-      <button class="comments-btn" data-id="${item.id}">💬 ${item.descendants || 0} comments</button>
-    </div>
-    ${item.text ? `<div class="post-text">${item.text}</div>` : ""}
-  `;
-  return card;
-}
+// Starts the post feed and connects the buttons to their events.
+export function initPosts(openComments) {
+  openCommentsFunction = openComments;
 
-function buildJobCard(item) {
-  const card = document.createElement("div");
-  card.className = "post-card";
-  card.dataset.id = item.id;
-  card.innerHTML = `
-    <div class="post-meta">
-      <span class="post-badge badge-job">Job</span>
-      <span>${timeAgo(item.time)}</span>
-    </div>
-    <h2 class="post-title">
-      ${item.url ? `<a href="${item.url}" target="_blank" rel="noopener">${item.title}</a>` : item.title}
-    </h2>
-    <div class="post-footer"><span>by <strong>${item.by}</strong></span></div>
-    ${item.text ? `<div class="post-text">${item.text}</div>` : ""}
-  `;
-  return card;
-}
+  document.getElementById("load-more-btn").addEventListener("click", loadMorePosts);
 
-function buildPollCard(item) {
-  const card = document.createElement("div");
-  card.className = "post-card";
-  card.dataset.id = item.id;
-  card.innerHTML = `
-    <div class="post-meta">
-      <span class="post-badge badge-poll">Poll</span>
-      <span>▲ ${item.score || 0}</span>
-      <span>${timeAgo(item.time)}</span>
-    </div>
-    <h2 class="post-title">${item.title}</h2>
-    <div class="poll-options" id="poll-opts-${item.id}"></div>
-    <div class="post-footer">
-      <span>by <strong>${item.by}</strong></span>
-      <button class="comments-btn" data-id="${item.id}">💬 ${item.descendants || 0} comments</button>
-    </div>
-  `;
-  if (item.parts && item.parts.length > 0) {
-    fetchItems(item.parts).then((parts) => {
-      const container = card.querySelector(`#poll-opts-${item.id}`);
-      parts.sort((a, b) => (b.score || 0) - (a.score || 0));
-      parts.forEach((part) => {
-        const opt = document.createElement("div");
-        opt.className = "poll-option";
-        opt.innerHTML = `<span>${part.text}</span><span>▲ ${part.score || 0}</span>`;
-        container.appendChild(opt);
-      });
+  document.querySelectorAll(".tab").forEach((tab) => {
+    tab.addEventListener("click", function () {
+      changeFeed(tab.dataset.feed);
     });
-  }
-  return card;
-}
-
-export function buildCard(item) {
-  if (item.type === "story") return buildStoryCard(item);
-  if (item.type === "job")   return buildJobCard(item);
-  if (item.type === "poll")  return buildPollCard(item);
-  return null;
-}
-
-async function loadNextPage() {
-  if (feedState.isLoading) return;
-  feedState.isLoading = true;
-
-  const pageIds = getPage(feedState.allIds, feedState.currentPage);
-  if (pageIds.length === 0) {
-    const btn = document.getElementById("load-more-btn");
-    btn.textContent = "No more posts";
-    btn.disabled = true;
-    feedState.isLoading = false;
-    return;
-  }
-
-  const items = await fetchItems(pageIds);
-  items.sort((a, b) => b.time - a.time);
-
-  const list = document.getElementById("post-list");
-  items.forEach((item) => {
-    const card = buildCard(item);
-    if (card) {
-      card.querySelector(".comments-btn")?.addEventListener("click", () => window.openComments(item.id));
-      list.appendChild(card);
-    }
   });
 
-  feedState.currentPage++;
-  feedState.isLoading = false;
+  changeFeed("top");
 }
 
-async function switchFeed(feedName) {
-  feedState.currentFeed = feedName;
-  feedState.allIds = [];
-  feedState.currentPage = 0;
-  feedState.isLoading = false;
+// Changes between Top, New, and Jobs.
+async function changeFeed(feedName) {
+  currentFeed = feedName;
+  currentPage = 0;
+  allPostIds = [];
 
   document.getElementById("post-list").innerHTML = "";
-  const btn = document.getElementById("load-more-btn");
-  btn.textContent = "Load More";
-  btn.disabled = false;
+  setStatus("Loading posts...");
+  setLoadButton(true, "Loading...");
 
-  document.querySelectorAll(".feed-tab").forEach((tab) => {
+  document.querySelectorAll(".tab").forEach((tab) => {
     tab.classList.toggle("active", tab.dataset.feed === feedName);
   });
 
-  if (feedName === "top")  feedState.allIds = await fetchTopStoryIds();
-  if (feedName === "new")  feedState.allIds = await fetchNewStoryIds();
-  if (feedName === "jobs") feedState.allIds = await fetchJobIds();
+  allPostIds = await fetchFeedIds(currentFeed);
 
-  await loadNextPage();
+  setStatus("");
+  setLoadButton(false, "Load more");
+  loadMorePosts();
 }
 
-export function initPostLoading() {
-  document.getElementById("load-more-btn").addEventListener("click", loadNextPage);
+// Loads the next small group of posts.
+async function loadMorePosts() {
+  if (isLoading) {
+    return;
+  }
 
-  window.addEventListener("scroll", throttle(() => {
-    if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 300) {
-      loadNextPage();
-    }
-  }, 500));
+  isLoading = true;
+  setStatus("Loading posts...");
+  setLoadButton(true, "Loading...");
 
-  document.querySelectorAll(".feed-tab").forEach((tab) => {
-    tab.addEventListener("click", () => switchFeed(tab.dataset.feed));
+  const idsForPage = getPage(allPostIds, currentPage, PAGE_SIZE);
+
+  if (idsForPage.length === 0) {
+    setStatus("No more posts.");
+    setLoadButton(true, "No more posts");
+    isLoading = false;
+    return;
+  }
+
+  const posts = await fetchItems(idsForPage);
+  posts.sort((a, b) => b.time - a.time);
+  posts.forEach(addPostToPage);
+
+  currentPage++;
+  isLoading = false;
+  setStatus("");
+  setLoadButton(false, "Load more");
+}
+
+// Adds one post card to the page.
+export function addPostToPage(post, addToTop = false) {
+  if (!post || !post.title || document.querySelector(`[data-id="${post.id}"]`)) {
+    return;
+  }
+
+  const card = makePostCard(post);
+
+  if (!card) {
+    return;
+  }
+
+  const list = document.getElementById("post-list");
+
+  if (addToTop) {
+    list.prepend(card);
+  } else {
+    list.appendChild(card);
+  }
+
+  sortPostCards();
+}
+
+// Builds the correct card depending on the item type.
+function makePostCard(post) {
+  if (post.type === "story") {
+    return makeStoryCard(post);
+  }
+
+  if (post.type === "job") {
+    return makeJobCard(post);
+  }
+
+  if (post.type === "poll") {
+    return makePollCard(post);
+  }
+
+  return null;
+}
+
+// Builds a normal story card.
+function makeStoryCard(post) {
+  const card = makeBasicCard(post, "Story", "story");
+  addCommentsButton(card, post);
+  return card;
+}
+
+// Builds a job post card.
+function makeJobCard(post) {
+  const card = makeBasicCard(post, "Job", "job");
+  addCommentsButton(card, post);
+  return card;
+}
+
+// Builds a poll card and then loads the poll options.
+function makePollCard(post) {
+  const card = makeBasicCard(post, "Poll", "poll");
+  const options = document.createElement("div");
+  card.appendChild(options);
+  addCommentsButton(card, post);
+
+  if (post.parts) {
+    loadPollOptions(post.parts, options);
+  }
+
+  return card;
+}
+
+// Builds the shared part of every post card.
+function makeBasicCard(post, label, typeClass) {
+  const card = document.createElement("article");
+  card.className = "post-card";
+  card.dataset.id = post.id;
+  card.dataset.time = post.time;
+
+  card.innerHTML = `
+    <div class="post-meta">
+      <span class="badge ${typeClass}">${label}</span>
+      <span>${timeAgo(post.time)}</span>
+      ${post.score ? `<span>${post.score} points</span>` : ""}
+    </div>
+    <h2 class="post-title">${makeTitle(post)}</h2>
+    <div class="post-footer">
+      <span>by ${post.by || "unknown"}</span>
+    </div>
+    ${post.text ? `<div class="post-text">${post.text}</div>` : ""}
+  `;
+
+  return card;
+}
+
+// Makes a title. If there is a url, the title becomes a link.
+function makeTitle(post) {
+  if (post.url) {
+    return `<a href="${post.url}" target="_blank" rel="noopener">${post.title}</a>`;
+  }
+
+  return post.title;
+}
+
+// Adds the comments button to a post.
+function addCommentsButton(card, post) {
+  const footer = card.querySelector(".post-footer");
+  const button = document.createElement("button");
+
+  button.className = "comments-btn";
+  button.textContent = `${post.descendants || 0} comments`;
+  button.addEventListener("click", function () {
+    openCommentsFunction(post.id);
   });
 
-  switchFeed("top");
+  footer.appendChild(button);
+}
+
+// Loads poll choices and shows their scores.
+async function loadPollOptions(partIds, container) {
+  const parts = await fetchItems(partIds);
+  parts.sort((a, b) => (b.score || 0) - (a.score || 0));
+
+  parts.forEach((part) => {
+    const option = document.createElement("div");
+    option.className = "poll-option";
+    option.innerHTML = `<span>${part.text}</span><span>${part.score || 0} points</span>`;
+    container.appendChild(option);
+  });
+}
+
+// Shows a message above the feed.
+function setStatus(message) {
+  document.getElementById("status-message").textContent = message;
+}
+
+// Changes the load button text and disabled state.
+function setLoadButton(disabled, text) {
+  const button = document.getElementById("load-more-btn");
+  button.disabled = disabled;
+  button.textContent = text;
+}
+
+// Keeps the cards on the page ordered from newest to oldest.
+function sortPostCards() {
+  const list = document.getElementById("post-list");
+  const cards = Array.from(list.children);
+
+  cards.sort((a, b) => Number(b.dataset.time) - Number(a.dataset.time));
+  cards.forEach((card) => list.appendChild(card));
 }
