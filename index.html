@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ClonerNews</title>
+  <style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: sans-serif; font-size: 15px; background: #f6f6ef; color: #222; }
+  a { color: #ff6600; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  header { background: #ff6600; color: #fff; padding: 8px 16px; font-weight: bold; font-size: 17px; position: sticky; top: 0; }
+  .feed-tabs { display: flex; gap: 4px; padding: 8px 16px 0; background: #fff; border-bottom: 1px solid #ddd; overflow-x: auto; position: sticky; top: 37px; }
+  .feed-tab { border: none; background: none; padding: 6px 12px; cursor: pointer; color: #828282; font-size: 13px; }
+  .feed-tab.active { color: #ff6600; border-bottom: 2px solid #ff6600; }
+  #live-banner { display: none; align-items: center; gap: 8px; padding: 8px 16px; background: #fff8e1; border-bottom: 2px solid #ffc107; font-size: 13px; }
+  #live-banner button { border: none; cursor: pointer; padding: 3px 10px; border-radius: 4px; }
+  #live-banner-action { background: #ff6600; color: #fff; }
+  #live-banner-dismiss { background: none; color: #828282; }
+  main { max-width: 760px; margin: 0 auto; padding: 16px; }
+  #post-list { display: flex; flex-direction: column; gap: 10px; }
+  .post-card { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 12px 14px; }
+  .post-meta { font-size: 12px; color: #828282; margin-bottom: 4px; display: flex; gap: 8px; align-items: center; }
+  .post-badge { padding: 1px 7px; border-radius: 99px; font-size: 11px; font-weight: bold; }
+  .badge-story { background: #e8f4fd; color: #1565c0; } .badge-job { background: #fdf3e8; color: #c25800; } .badge-poll { background: #edf7ed; color: #2e7d32; }
+  .post-title { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+  .post-footer { font-size: 12px; color: #828282; display: flex; gap: 10px; align-items: center; }
+  .comments-btn { border: 1px solid #ddd; background: none; border-radius: 4px; padding: 2px 8px; cursor: pointer; font-size: 12px; color: #828282; }
+  .comments-btn:hover { background: #ff6600; color: #fff; border-color: #ff6600; }
+  .poll-option { display: flex; justify-content: space-between; background: #f6f6ef; border-radius: 4px; padding: 5px 10px; font-size: 13px; margin-top: 5px; }
+  #load-more-btn { display: block; margin: 20px auto; padding: 8px 24px; border: 2px solid #ff6600; background: #fff; color: #ff6600; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; }
+  #load-more-btn:hover:not(:disabled) { background: #ff6600; color: #fff; }
+  #load-more-btn:disabled { opacity: .5; cursor: default; }
+  #comment-panel { position: fixed; top: 0; right: -480px; width: 460px; max-width: 100vw; height: 100vh; background: #fff; z-index: 201; display: flex; flex-direction: column; transition: right .2s; border-left: 1px solid #ddd; }
+  #comment-panel.open { right: 0; }
+  .panel-header { display: flex; align-items: flex-start; gap: 8px; padding: 14px; border-bottom: 1px solid #ddd; }
+  #comment-panel-title { flex: 1; font-weight: bold; font-size: 14px; line-height: 1.3; }
+  #close-comments-btn { border: none; background: none; font-size: 18px; cursor: pointer; color: #828282; }
+  #comment-list { flex: 1; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 12px; }
+  .comment { border-left: 3px solid #eee; padding-left: 10px; font-size: 13px; }
+  .comment-header { display: flex; gap: 8px; align-items: center; margin-bottom: 3px; font-size: 12px; color: #828282; flex-wrap: wrap; }
+  .comment-by { color: #ff6600; font-weight: bold; }
+  .toggle-replies-btn { border: 1px solid #ddd; background: none; border-radius: 4px; padding: 1px 6px; cursor: pointer; font-size: 11px; color: #828282; }
+  .replies-container { margin-top: 8px; display: flex; flex-direction: column; gap: 10px; }
+  .loading-text, .error-text, .empty-text { color: #828282; font-size: 13px; text-align: center; padding: 10px 0; }
+  .error-text { color: #c62828; }
+</style>
+</head>
+<body>
+
+  <!-- ── App Header ── -->
+  <header>
+    <div class="logo">▲ ClonerNews</div>
+  </header>
+
+  <!-- ── Feed Tabs (Person 2 controls these) ── -->
+  <nav class="feed-tabs">
+    <button class="feed-tab active" data-feed="top">Top</button>
+    <button class="feed-tab" data-feed="new">New</button>
+    <button class="feed-tab" data-feed="jobs">Jobs</button>
+  </nav>
+
+  <!-- ── Live Update Banner (Person 3 controls this) ── -->
+  <div id="live-banner">
+    <div class="dot"></div>
+    <span id="live-banner-msg">New items available</span>
+    <button id="live-banner-action">View</button>
+    <button id="live-banner-dismiss">✕</button>
+  </div>
+
+  <!-- ── Main Content ── -->
+  <main>
+    <!-- Post list: Person 2 populates this -->
+    <div id="post-list"></div>
+
+    <!-- Loading spinner -->
+    <div id="loading-indicator">
+      <span class="spinner"></span> Loading posts…
+    </div>
+
+    <!-- Load More button: Person 2 handles click -->
+    <button id="load-more-btn">Load More</button>
+  </main>
+
+  <!-- ── Comment Panel (Person 3 controls this) ── -->
+  <aside id="comment-panel">
+    <div class="panel-header">
+      <div id="comment-panel-title">Comments</div>
+      <button id="close-comments-btn" title="Close">✕</button>
+    </div>
+    <div id="comment-list"></div>
+  </aside>
+
+
+
+  <script type="module" src="main.js"></script>
+
+</body>
+</html>
