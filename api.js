@@ -1,4 +1,6 @@
 const BASE_URL = "https://hacker-news.firebaseio.com/v0";
+const ALGOLIA_BASE_URL = "https://hn.algolia.com/api/v1";
+const ALGOLIA_HITS_PER_PAGE = 100;
 const itemCache = {};
 
 // Gets one item from Hacker News. It uses a cache so we do not fetch the same item twice.
@@ -28,8 +30,33 @@ export async function fetchItems(ids) {
   return items.filter((item) => item !== null);
 }
 
+// Gets the ids for the selected feed from Algolia.
+export async function fetchAlgoliaFeedIds(feedName) {
+  const params = new URLSearchParams({
+    hitsPerPage: ALGOLIA_HITS_PER_PAGE,
+    tags: getAlgoliaTags(feedName),
+  });
+
+  const endpoint = feedName === "top" ? "search" : "search_by_date";
+
+  try {
+    const response = await fetch(`${ALGOLIA_BASE_URL}/${endpoint}?${params}`);
+    const data = await response.json();
+    return data.hits.map((hit) => Number(hit.objectID));
+  } catch (error) {
+    console.log("Could not fetch Algolia feed", error);
+    return [];
+  }
+}
+
 // Gets the ids for the selected feed.
 export async function fetchFeedIds(feedName) {
+  const algoliaIds = await fetchAlgoliaFeedIds(feedName);
+
+  if (algoliaIds.length > 0) {
+    return algoliaIds;
+  }
+
   let endpoint = "topstories";
 
   if (feedName === "new") {
@@ -40,6 +67,10 @@ export async function fetchFeedIds(feedName) {
     endpoint = "jobstories";
   }
 
+  if (feedName === "polls") {
+    return [];
+  }
+
   try {
     const response = await fetch(`${BASE_URL}/${endpoint}.json`);
     return await response.json();
@@ -47,6 +78,23 @@ export async function fetchFeedIds(feedName) {
     console.log("Could not fetch feed", error);
     return [];
   }
+}
+
+// Maps our UI feed names to Algolia tags.
+function getAlgoliaTags(feedName) {
+  if (feedName === "new") {
+    return "story";
+  }
+
+  if (feedName === "jobs") {
+    return "job";
+  }
+
+  if (feedName === "polls") {
+    return "poll";
+  }
+
+  return "front_page";
 }
 
 // Gets the live update ids from Hacker News.

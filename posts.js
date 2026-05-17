@@ -23,7 +23,7 @@ export function initPosts(openComments) {
   changeFeed("top");
 }
 
-// Changes between Top, New, and Jobs.
+// Changes between Top, New, Jobs, and Polls.
 async function changeFeed(feedName) {
   currentFeed = feedName;
   currentPage = 0;
