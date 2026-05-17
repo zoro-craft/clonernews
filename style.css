@@ -1,0 +1,258 @@
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    font-size: 62.5%; 
+}
+
+body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    line-height: 1.6;
+    background-color: #f8fafc; 
+    color: #1e293b; 
+    padding-bottom: 4rem;
+}
+
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #ffffff;
+    height: 7.2rem;
+    padding: 0 6.4rem;
+    border-bottom: 1px solid #e2e8f0; 
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.logo {
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.05em;
+    color: #4f46e5; 
+    text-transform: uppercase;
+}
+
+.navbar {
+    display: flex;
+    gap: 0.8rem;
+}
+
+.nav-btn {
+    font-family: inherit;
+    font-size: 1.4rem;
+    font-weight: 600;
+    padding: 0.8rem 1.6rem;
+    border: none;
+    border-radius: 0.8rem;
+    cursor: pointer;
+    background: transparent;
+    color: #64748b; 
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-btn:hover {
+    background-color: #f1f5f9;
+    color: #4f46e5;
+}
+
+.nav-btn.active {
+    background-color: #eef2ff;
+    color: #4f46e5;
+}
+
+
+#container {
+    max-width: 90rem;
+    margin: 4rem auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.6rem;
+    padding: 0 2rem;
+}
+
+.story-card {
+    background: #ffffff;
+    padding: 2rem;
+    border-radius: 1.2rem;
+    border: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s ease;
+}
+
+.story-card:hover {
+    border-color: #4f46e5;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.story-main {
+    display: flex;
+    align-items: flex-start;
+    gap: 2rem;
+}
+
+.story-score {
+    background-color: #f1f5f9;
+    color: #4f46e5;
+    font-size: 1.4rem;
+    font-weight: 700;
+    min-width: 5rem;
+    height: 5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 1rem;
+    border: 1px solid #e2e8f0;
+}
+
+.story-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.story-title a {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: #0f172a; 
+    text-decoration: none;
+    line-height: 1.4;
+    transition: color 0.2s;
+}
+
+.story-title a:hover {
+    color: #4f46e5;
+}
+
+.story-meta {
+    font-size: 1.3rem;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+}
+
+.separator {
+    color: #cbd5e1;
+}
+
+.story-type {
+    font-size: 1.1rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 0.4rem 1.2rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 2rem; 
+    color: #94a3b8;
+}
+
+.comment-btn {
+    background: none;
+    border: none;
+    color: #4f46e5;
+    font-size: 1.3rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+}
+
+.comment-btn:hover {
+    color: #1e293b;
+}
+
+.comments-section {
+    margin-top: 1.2rem;
+    padding: 1rem;
+    background: #f8fafc;
+    border-left: 3px solid #e2e8f0;
+    font-size: 1.2rem;
+    border-radius: 0.4rem;
+}
+
+.footer-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 4rem 0 8rem 0;
+}
+
+#loadMoreBtn {
+    font-family: inherit;
+    background-color: #0f172a; 
+    color: #ffffff;
+    font-size: 1.6rem;
+    font-weight: 600;
+    padding: 1.4rem 3.2rem;
+    border: none;
+    border-radius: 1rem;
+    cursor: pointer;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+#loadMoreBtn:hover {
+    background-color: #1e293b;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+}
+
+#loadMoreBtn:active {
+    transform: translateY(0);
+}
+
+
+@media (max-width: 768px) {
+    .header {
+        padding: 0 2rem;
+        height: auto;
+        flex-direction: column;
+        padding: 1.5rem;
+        gap: 1.5rem;
+    }
+
+    .story-card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1.5rem;
+    }
+
+    .story-type {
+        align-self: flex-start;
+    }
+}
+
+
+.loading-indicator {
+    text-align: center;
+    font-size: 20px;
+    padding: 20px;
+    font-weight: bold;
+    display: none; /* Katbda mkhbya */
+}
+
+.loading-indicator::after {
+    content: '';
+    animation: dots 1.5s infinite;
+}
+
+@keyframes dots {
+    0% { content: ''; }
+    33% { content: '.'; }
+    66% { content: '..'; }
+    100% { content: '...'; }
+}
