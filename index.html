@@ -1,25 +1,42 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClonerNews</title>
     <link rel="stylesheet" href="style.css">
-    <title>CLONERNEWS</title>
 </head>
-
 <body>
-    <header class="header">
-        <h1 class="logo">CLONERNEWS</h1>
 
+    <header>
+        <h1>CLONERNEWS</h1>
     </header>
-    <main>
-        <div id="container">
 
-        </div>
-    </main>
-  
+    <!-- Live update banner (hidden until new items arrive) -->
+    <div id="banner"></div>
+
+    <!-- Posts appear here -->
+    <div id="feed"></div>
+
+    <!-- Loading spinner -->
+    <div id="spinner">Loading…</div>
+
+    <!-- Load more button -->
+    <div id="load-more-wrap">
+        <button id="load-btn" style="display:none">Load more</button>
+    </div>
+
+    <!--
+        Script load order matters:
+        1. api.js     → fetchItem, fetchItems, fetchBatch, getMaxItem, startLivePolling
+        2. posts.js   → buildCard (needs fetchItems from api.js)
+        3. comments.js→ toggleComments (needs fetchItem from api.js)
+        4. main.js    → wires everything together
+    -->
+    <script src="api.js"></script>
+    <script src="posts.js"></script>
+    <script src="comments.js"></script>
     <script src="main.js"></script>
-</body>
 
+</body>
 </html>
