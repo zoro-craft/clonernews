@@ -53,3 +53,8 @@ No API key or configuration is needed.
   replies are not expanded.
 - Comment text is inserted as HTML, because HN returns HTML fragments.
 - There is no offline mode, search or authentication.
+
+## Authors
+
+- **Ssam** — [@drawliin](https://github.com/drawliin)
+- **Elmehdi Rezoug** — [@zoro-craft](https://github.com/zoro-craft)
